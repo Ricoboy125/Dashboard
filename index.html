@@ -48,7 +48,6 @@
   .save-btn:hover { background: var(--bg2); }
   .save-cloud { font-size: 12px; padding: 5px 14px; background: #1D9E75; border: none; border-radius: var(--radius-sm); cursor: pointer; color: #fff; font-family: inherit; }
   .save-cloud:hover { background: #0F6E56; }
-  .save-cloud:disabled { opacity: 0.5; cursor: default; }
   .status { font-size: 11px; color: var(--text3); }
   .divider { height: 0.5px; background: var(--border); margin: 1.25rem 0; }
   .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -75,6 +74,8 @@
   .tab-row { display: flex; gap: 6px; margin-bottom: 1rem; }
   .tab { font-size: 12px; padding: 5px 12px; border: 0.5px solid var(--border2); border-radius: 20px; cursor: pointer; background: none; color: var(--text2); font-family: inherit; }
   .tab.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .url-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 11px; color: var(--text3); cursor: pointer; }
+  .url-row:hover { color: var(--text2); }
 </style>
 </head>
 <body>
@@ -85,8 +86,7 @@
   </div>
 
   <div id="setup-banner" class="setup-banner" style="display:none;">
-    <strong>One-time setup:</strong> To save your entries to Google Sheets, paste your Apps Script Web App URL below.<br>
-    <small>See the README sheet in your Google Sheet for instructions.</small>
+    <strong>One-time setup:</strong> Paste your Apps Script Web App URL below to enable saving to Google Sheets.
     <input type="text" id="script-url-input" placeholder="https://script.google.com/macros/s/.../exec" />
     <button onclick="saveScriptUrl()">Save URL</button>
   </div>
@@ -94,6 +94,7 @@
   <div class="tab-row">
     <button class="tab active" onclick="showTab('today')">Today</button>
     <button class="tab" onclick="showTab('history')">History</button>
+    <button class="tab" onclick="showTab('settings')">Settings</button>
   </div>
 
   <div id="tab-today">
@@ -169,7 +170,20 @@
     <div class="section">
       <div class="section-label">Journal history</div>
       <div class="history-block" id="history-list">
-        <div style="font-size:13px;color:var(--text3);padding:8px 0;">Loading entries...</div>
+        <div style="font-size:13px;color:var(--text3);padding:8px 0;">Click load to fetch your entries.</div>
+      </div>
+      <button class="save-btn" style="margin-top:10px;" onclick="loadHistory()">Load history</button>
+    </div>
+  </div>
+
+  <div id="tab-settings" style="display:none;">
+    <div class="section">
+      <div class="section-label">Settings</div>
+      <div class="block">
+        <div class="field-label">Apps Script URL</div>
+        <input type="text" id="settings-url-input" placeholder="https://script.google.com/macros/s/.../exec" style="width:100%;font-size:13px;padding:8px 10px;border:0.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg2);color:var(--text);font-family:inherit;margin-top:6px;" />
+        <button class="save-cloud" style="margin-top:10px;" onclick="saveScriptUrlFromSettings()">Save URL</button>
+        <div style="font-size:11px;color:var(--text3);margin-top:8px;" id="settings-url-current"></div>
       </div>
     </div>
   </div>
@@ -188,6 +202,10 @@ let scriptUrl = localStorage.getItem(SCRIPT_KEY) || '';
 
 function checkSetup() {
   if (!scriptUrl) document.getElementById('setup-banner').style.display = 'block';
+  const el = document.getElementById('settings-url-current');
+  if (el) el.textContent = scriptUrl ? 'Current: ' + scriptUrl.substring(0, 60) + '...' : 'No URL set yet.';
+  const inp = document.getElementById('settings-url-input');
+  if (inp && scriptUrl) inp.value = scriptUrl;
 }
 
 function saveScriptUrl() {
@@ -196,13 +214,26 @@ function saveScriptUrl() {
   scriptUrl = val;
   localStorage.setItem(SCRIPT_KEY, val);
   document.getElementById('setup-banner').style.display = 'none';
+  checkSetup();
+}
+
+function saveScriptUrlFromSettings() {
+  const val = document.getElementById('settings-url-input').value.trim();
+  if (!val) return;
+  scriptUrl = val;
+  localStorage.setItem(SCRIPT_KEY, val);
+  document.getElementById('settings-url-current').textContent = 'Saved: ' + val.substring(0,60) + '...';
+  checkSetup();
 }
 
 function showTab(tab) {
-  document.getElementById('tab-today').style.display = tab === 'today' ? 'block' : 'none';
-  document.getElementById('tab-history').style.display = tab === 'history' ? 'block' : 'none';
-  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (i===0&&tab==='today')||(i===1&&tab==='history')));
-  if (tab === 'history') loadHistory();
+  ['today','history','settings'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t === tab ? 'block' : 'none';
+  });
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    t.classList.toggle('active', ['today','history','settings'][i] === tab);
+  });
+  if (tab === 'settings') checkSetup();
 }
 
 function renderTasks() {
@@ -221,7 +252,7 @@ function autoResize(el) { el.style.height='auto'; el.style.height=el.scrollHeigh
 function bindTextareas() { document.querySelectorAll('textarea').forEach(ta=>{ ta.addEventListener('input',()=>autoResize(ta)); autoResize(ta); }); }
 
 function saveDraft(section) {
-  if (section==='morning') { draft.grateful=document.getElementById('grateful').value; }
+  if (section==='morning') draft.grateful=document.getElementById('grateful').value;
   if (section==='evening') { draft.proud=document.getElementById('proud').value; draft.letgo=document.getElementById('letgo').value; }
   persistDraft(draft);
   setStatus(section+'-status', 'Draft saved');
@@ -229,13 +260,15 @@ function saveDraft(section) {
 
 async function saveToSheet(section) {
   if (!scriptUrl) { document.getElementById('setup-banner').style.display='block'; return; }
-  if (section==='morning') { draft.grateful=document.getElementById('grateful').value; }
+  if (section==='morning') draft.grateful=document.getElementById('grateful').value;
   if (section==='evening') { draft.proud=document.getElementById('proud').value; draft.letgo=document.getElementById('letgo').value; }
   persistDraft(draft);
 
-  const taskStr = draft.tasks.filter(t=>t.text).map((t,i)=>`${i+1}. [${t.done?'x':' '}] ${t.text}`).join('\n');
+  const taskStr = draft.tasks.filter(t=>t.text).map((t,i)=>`${i+1}. [${t.done?'x':' '}] ${t.text}`).join(' | ');
   const today = new Date().toLocaleDateString('en-GB');
-  const payload = {
+
+  const params = new URLSearchParams({
+    action: 'save',
     date: today,
     section: section,
     tasks: taskStr,
@@ -244,26 +277,26 @@ async function saveToSheet(section) {
     letgo: draft.letgo,
     income: draft.income,
     closes: draft.closes
-  };
+  });
 
   setStatus(section+'-status', 'Saving...');
   try {
-    await fetch(scriptUrl, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    setStatus(section+'-status', 'Saved to journal');
+    const res = await fetch(scriptUrl + '?' + params.toString());
+    const text = await res.text();
+    if (text.includes('ok') || text.includes('error') === false) {
+      setStatus(section+'-status', 'Saved to journal');
+    } else {
+      setStatus(section+'-status', 'Something went wrong');
+    }
   } catch(e) {
-    setStatus(section+'-status', 'Error — check your URL');
+    setStatus(section+'-status', 'Error: ' + e.message);
   }
 }
 
 function setStatus(id, msg) {
   const el = document.getElementById(id);
   el.textContent = msg;
-  setTimeout(()=>el.textContent='', 3000);
+  setTimeout(()=>el.textContent='', 4000);
 }
 
 function saveIncome() { const val=parseFloat(document.getElementById('income-input').value)||0; draft.income=val; persistDraft(draft); document.getElementById('income-input').value=''; renderSales(); }
@@ -290,15 +323,15 @@ function renderDate() {
 
 async function loadHistory() {
   const el = document.getElementById('history-list');
-  if (!scriptUrl) { el.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">Set up your Apps Script URL first to view history.</div>'; return; }
+  if (!scriptUrl) { el.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">Set your Apps Script URL in Settings first.</div>'; return; }
   el.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">Loading...</div>';
   try {
-    const res = await fetch(scriptUrl+'?action=history');
+    const res = await fetch(scriptUrl + '?action=history');
     const data = await res.json();
     if (!data.length) { el.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">No entries yet.</div>'; return; }
     el.innerHTML = data.reverse().map(row=>`
       <div class="history-entry">
-        <div class="history-date">${row.date} &mdash; ${row.section}</div>
+        <div class="history-date">${row.date} — ${row.section}</div>
         ${row.tasks ? `<div class="history-field">Tasks</div><div class="history-val">${row.tasks}</div>` : ''}
         ${row.grateful ? `<div class="history-field">Grateful for</div><div class="history-val">${row.grateful}</div>` : ''}
         ${row.proud ? `<div class="history-field">Proud of</div><div class="history-val">${row.proud}</div>` : ''}
@@ -306,7 +339,7 @@ async function loadHistory() {
         ${row.income ? `<div class="history-field">Income: €${row.income} &nbsp; Closes: ${row.closes}</div>` : ''}
       </div>`).join('');
   } catch(e) {
-    el.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">Could not load history. Check your URL.</div>';
+    el.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">Could not load history: ' + e.message + '</div>';
   }
 }
 
