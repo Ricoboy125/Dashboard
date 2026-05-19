@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Richard — Daily Dashboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg2: #f5f5f3; --bg3: #efefec;
+    --text: #1a1a18; --text2: #5a5a57; --text3: #9a9a96;
+    --border: rgba(0,0,0,0.1); --border2: rgba(0,0,0,0.18);
+    --green: #1D9E75; --radius: 12px; --radius-sm: 8px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a; --bg2: #252523; --bg3: #2e2e2b;
+      --text: #f0f0ec; --text2: #a0a09c; --text3: #606060;
+      --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.15);
+    }
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg2); color: var(--text); min-height: 100vh; padding: 2rem 1rem 4rem; }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  .top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 2rem; }
+  .top-title { font-size: 22px; font-weight: 500; }
+  .top-date { font-size: 13px; color: var(--text3); }
+  .section-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 1rem; }
+  .section { margin-bottom: 2rem; }
+  .block { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 10px; }
+  .block-title { font-size: 13px; font-weight: 500; color: var(--text2); margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+  .field-label { font-size: 11px; color: var(--text3); margin-bottom: 5px; }
+  .field-wrap { margin-bottom: 14px; }
+  .field-wrap:last-child { margin-bottom: 0; }
+  textarea { font-size: 13px; color: var(--text); width: 100%; padding: 8px 10px; border: 0.5px solid var(--border); border-radius: var(--radius-sm); background: var(--bg2); resize: none; font-family: inherit; line-height: 1.6; overflow: hidden; }
+  textarea:focus { outline: none; border-color: var(--border2); background: var(--bg); }
+  .tasks-list { display: flex; flex-direction: column; gap: 7px; }
+  .task-row { display: flex; align-items: center; gap: 10px; }
+  .task-check { width: 18px; height: 18px; border: 0.5px solid var(--border2); border-radius: 4px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: var(--bg); transition: background 0.15s; }
+  .task-check.done { background: #1D9E75; border-color: #1D9E75; }
+  .task-check.done::after { content: ''; display: block; width: 10px; height: 7px; border-left: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(-45deg) translate(1px,-1px); }
+  .task-input { flex: 1; font-size: 13px; color: var(--text); background: none; border: none; outline: none; font-family: inherit; padding: 4px 0; border-bottom: 0.5px solid var(--border); }
+  .task-input.done-text { color: var(--text3); text-decoration: line-through; }
+  .task-input::placeholder { color: var(--text3); }
+  .add-task { font-size: 12px; color: var(--text3); cursor: pointer; background: none; border: none; padding: 6px 0; display: flex; align-items: center; gap: 4px; margin-top: 4px; font-family: inherit; }
+  .add-task:hover { color: var(--text); }
+  .save-row { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; gap: 8px; }
+  .save-btn { font-size: 12px; padding: 5px 14px; background: var(--bg); border: 0.5px solid var(--border2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text2); font-family: inherit; }
+  .save-btn:hover { background: var(--bg2); }
+  .save-cloud { font-size: 12px; padding: 5px 14px; background: #1D9E75; border: none; border-radius: var(--radius-sm); cursor: pointer; color: #fff; font-family: inherit; }
+  .save-cloud:hover { background: #0F6E56; }
+  .save-cloud:disabled { opacity: 0.5; cursor: default; }
+  .status { font-size: 11px; color: var(--text3); }
+  .divider { height: 0.5px; background: var(--border); margin: 1.25rem 0; }
+  .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .metric-card { background: var(--bg2); border-radius: var(--radius-sm); padding: 1rem 1.25rem; }
+  .metric-label { font-size: 12px; color: var(--text2); margin-bottom: 8px; }
+  .metric-value { font-size: 26px; font-weight: 500; color: var(--text); line-height: 1; }
+  .metric-goal { font-size: 11px; color: var(--text3); margin-top: 6px; }
+  .progress-wrap { height: 4px; background: var(--bg3); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+  .progress-bar { height: 100%; border-radius: 2px; background: #1D9E75; transition: width 0.4s ease; }
+  .metric-edit { display: flex; gap: 6px; margin-top: 10px; }
+  .metric-edit input { flex: 1; font-size: 13px; padding: 5px 8px; border: 0.5px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); color: var(--text); font-family: inherit; }
+  .metric-edit button { font-size: 12px; padding: 5px 10px; background: var(--bg); border: 0.5px solid var(--border2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text2); font-family: inherit; }
+  .metric-edit button:hover { background: var(--bg2); }
+  .setup-banner { background: var(--bg3); border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1.5rem; font-size: 13px; color: var(--text2); line-height: 1.6; }
+  .setup-banner strong { color: var(--text); }
+  .setup-banner input { width: 100%; font-size: 13px; padding: 6px 10px; border: 0.5px solid var(--border2); border-radius: var(--radius-sm); background: var(--bg); color: var(--text); font-family: inherit; margin-top: 8px; }
+  .setup-banner button { font-size: 12px; padding: 5px 14px; background: #1D9E75; border: none; border-radius: var(--radius-sm); cursor: pointer; color: #fff; font-family: inherit; margin-top: 8px; }
+  .history-block { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+  .history-entry { padding: 10px 0; border-bottom: 0.5px solid var(--border); }
+  .history-entry:last-child { border-bottom: none; }
+  .history-date { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 6px; }
+  .history-field { font-size: 12px; color: var(--text3); margin-bottom: 2px; }
+  .history-val { font-size: 13px; color: var(--text); margin-bottom: 6px; white-space: pre-wrap; }
+  .tab-row { display: flex; gap: 6px; margin-bottom: 1rem; }
+  .tab { font-size: 12px; padding: 5px 12px; border: 0.5px solid var(--border2); border-radius: 20px; cursor: pointer; background: none; color: var(--text2); font-family: inherit; }
+  .tab.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <span class="top-title">Dashboard</span>
+    <span class="top-date" id="today-date"></span>
+  </div>
+
+  <div id="setup-banner" class="setup-banner" style="display:none;">
+    <strong>One-time setup:</strong> To save your entries to Google Sheets, paste your Apps Script Web App URL below.<br>
+    <small>See the README sheet in your Google Sheet for instructions.</small>
+    <input type="text" id="script-url-input" placeholder="https://script.google.com/macros/s/.../exec" />
+    <button onclick="saveScriptUrl()">Save URL</button>
+  </div>
+
+  <div class="tab-row">
+    <button class="tab active" onclick="showTab('today')">Today</button>
+    <button class="tab" onclick="showTab('history')">History</button>
+  </div>
+
+  <div id="tab-today">
+    <div class="section">
+      <div class="section-label">Life & Personal Growth</div>
+      <div class="block">
+        <div class="block-title">&#9728; Morning</div>
+        <div class="field-wrap">
+          <div class="field-label">Most important tasks for today</div>
+          <div class="tasks-list" id="tasks-list"></div>
+          <button class="add-task" onclick="addTask()">+ add task</button>
+        </div>
+        <div class="divider"></div>
+        <div class="field-wrap">
+          <div class="field-label">What I am grateful for</div>
+          <textarea id="grateful" rows="3" placeholder="Write what you are grateful for today..."></textarea>
+        </div>
+        <div class="save-row">
+          <span class="status" id="morning-status"></span>
+          <div style="display:flex;gap:6px;">
+            <button class="save-btn" onclick="saveDraft('morning')">save draft</button>
+            <button class="save-cloud" onclick="saveToSheet('morning')">save to journal</button>
+          </div>
+        </div>
+      </div>
+      <div class="block">
+        <div class="block-title">&#9790; Evening</div>
+        <div class="field-wrap">
+          <div class="field-label">What I am proud of today</div>
+          <textarea id="proud" rows="3" placeholder="What did you do well today..."></textarea>
+        </div>
+        <div class="field-wrap">
+          <div class="field-label">What I need to let go of tomorrow</div>
+          <textarea id="letgo" rows="3" placeholder="What are you releasing before tomorrow..."></textarea>
+        </div>
+        <div class="save-row">
+          <span class="status" id="evening-status"></span>
+          <div style="display:flex;gap:6px;">
+            <button class="save-btn" onclick="saveDraft('evening')">save draft</button>
+            <button class="save-cloud" onclick="saveToSheet('evening')">save to journal</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Sales</div>
+      <div class="metric-grid">
+        <div class="metric-card">
+          <div class="metric-label">Income this month</div>
+          <div class="metric-value" id="income-val">€0</div>
+          <div class="metric-goal">goal: €10,000</div>
+          <div class="progress-wrap"><div class="progress-bar" id="income-bar" style="width:0%;"></div></div>
+          <div class="metric-edit">
+            <input type="number" id="income-input" placeholder="€ amount" min="0" />
+            <button onclick="saveIncome()">update</button>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Closes this month</div>
+          <div class="metric-value" id="closes-val">0</div>
+          <div class="metric-goal" id="closes-sub">keep going</div>
+          <div class="metric-edit">
+            <input type="number" id="closes-input" placeholder="count" min="0" />
+            <button onclick="saveCloses()">update</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-history" style="display:none;">
+    <div class="section">
+      <div class="section-label">Journal history</div>
+      <div class="history-block" id="history-list">
+        <div style="font-size:13px;color:var(--text3);padding:8px 0;">Loading entries...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DRAFT_KEY = 'richard_dash_draft';
+const SCRIPT_KEY = 'richard_script_url';
+
+function getDraft() { try { const r = localStorage.getItem(DRAFT_KEY); return r ? JSON.parse(r) : defaultDraft(); } catch(e) { return defaultDraft(); } }
+function defaultDraft() { return { tasks:[{text:'',done:false},{text:'',done:false},{text:'',done:false}], grateful:'', proud:'', letgo:'', income:0, closes:0 }; }
+function persistDraft(d) { try { localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch(e) {} }
+
+let draft = getDraft();
+let scriptUrl = localStorage.getItem(SCRIPT_KEY) || '';
+
+function checkSetup() {
+  if (!scriptUrl) document.getElementById('setup-banner').style.display = 'block';
+}
+
+function saveScriptUrl() {
+  const val = document.getElementById('script-url-input').value.trim();
+  if (!val) return;
+  scriptUrl = val;
+  localStorage.setItem(SCRIPT_KEY, val);
+  document.getElementById('setup-banner').style.display = 'none';
+}
+
+function showTab(tab) {
+  document.getElementById('tab-today').style.display = tab === 'today' ? 'block' : 'none';
+  document.getElementById('tab-history').style.display = tab === 'history' ? 'block' : 'none';
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (i===0&&tab==='today')||(i===1&&tab==='history')));
+  if (tab === 'history') loadHistory();
+}
+
+function renderTasks() {
+  const list = document.getElementById('tasks-list');
+  list.innerHTML = draft.tasks.map((t,i) => `
+    <div class="task-row">
+      <div class="task-check ${t.done?'done':''}" onclick="toggleTask(${i})"></div>
+      <input class="task-input ${t.done?'done-text':''}" type="text" value="${t.text.replace(/"/g,'&quot;')}" placeholder="Task ${i+1}..." onblur="updateTaskText(${i},this.value)" onkeydown="if(event.key==='Enter')this.blur();" />
+    </div>`).join('');
+}
+function toggleTask(i) { draft.tasks[i].done=!draft.tasks[i].done; persistDraft(draft); renderTasks(); }
+function updateTaskText(i,val) { draft.tasks[i].text=val; persistDraft(draft); }
+function addTask() { draft.tasks.push({text:'',done:false}); persistDraft(draft); renderTasks(); setTimeout(()=>{ const inputs=document.querySelectorAll('.task-input'); if(inputs.length) inputs[inputs.length-1].focus(); },50); }
+
+function autoResize(el) { el.style.height='auto'; el.style.height=el.scrollHeight+'px'; }
+function bindTextareas() { document.querySelectorAll('textarea').forEach(ta=>{ ta.addEventListener('input',()=>autoResize(ta)); autoResize(ta); }); }
+
+function saveDraft(section) {
+  if (section==='morning') { draft.grateful=document.getElementById('grateful').value; }
+  if (section==='evening') { draft.proud=document.getElementById('proud').value; draft.letgo=document.getElementById('letgo').value; }
+  persistDraft(draft);
+  setStatus(section+'-status', 'Draft saved');
+}
+
+async function saveToSheet(section) {
+  if (!scriptUrl) { document.getElementById('setup-banner').style.display='block'; return; }
+  if (section==='morning') { draft.grateful=document.getElementById('grateful').value; }
+  if (section==='evening') { draft.proud=document.getElementById('proud').value; draft.letgo=document.getElementById('letgo').value; }
+  persistDraft(draft);
+
+  const taskStr = draft.tasks.filter(t=>t.text).map((t,i)=>`${i+1}. [${t.done?'x':' '}] ${t.text}`).join('\n');
+  const today = new Date().toLocaleDateString('en-GB');
+  const payload = {
+    date: today,
+    section: section,
+    tasks: taskStr,
+    grateful: draft.grateful,
+    proud: draft.proud,
+    letgo: draft.letgo,
+    income: draft.income,
+    closes: draft.closes
+  };
+
+  setStatus(section+'-status', 'Saving...');
+  try {
+    await fetch(scriptUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    setStatus(section+'-status', 'Saved to journal');
+  } catch(e) {
+    setStatus(section+'-status', 'Error — check your URL');
+  }
+}
+
+function setStatus(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  setTimeout(()=>el.textContent='', 3000);
+}
+
+function saveIncome() { const val=parseFloat(document.getElementById('income-input').value)||0; draft.income=val; persistDraft(draft); document.getElementById('income-input').value=''; renderSales(); }
+function saveCloses() { const val=parseInt(document.getElementById('closes-input').value)||0; draft.closes=val; persistDraft(draft); document.getElementById('closes-input').value=''; renderSales(); }
+
+function renderSales() {
+  const pct=Math.min(100,Math.round((draft.income/10000)*100));
+  document.getElementById('income-val').textContent='€'+draft.income.toLocaleString('nl-NL');
+  document.getElementById('income-bar').style.width=pct+'%';
+  document.getElementById('closes-val').textContent=draft.closes;
+  document.getElementById('closes-sub').textContent=draft.closes===0?'no closes yet':draft.closes===1?'1 close — keep going':draft.closes+' closes — strong month';
+}
+
+function renderReflections() {
+  document.getElementById('grateful').value=draft.grateful||'';
+  document.getElementById('proud').value=draft.proud||'';
+  document.getElementById('letgo').value=draft.letgo||'';
+}
+
+function renderDate() {
+  const d=new Date();
+  document.getElementById('today-date').textContent=d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+}
+
+async function loadHistory() {
+  const el = document.getElementById('history-list');
+  if (!scriptUrl) { el.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">Set up your Apps Script URL first to view history.</div>'; return; }
+  el.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">Loading...</div>';
+  try {
+    const res = await fetch(scriptUrl+'?action=history');
+    const data = await res.json();
+    if (!data.length) { el.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">No entries yet.</div>'; return; }
+    el.innerHTML = data.reverse().map(row=>`
+      <div class="history-entry">
+        <div class="history-date">${row.date} &mdash; ${row.section}</div>
+        ${row.tasks ? `<div class="history-field">Tasks</div><div class="history-val">${row.tasks}</div>` : ''}
+        ${row.grateful ? `<div class="history-field">Grateful for</div><div class="history-val">${row.grateful}</div>` : ''}
+        ${row.proud ? `<div class="history-field">Proud of</div><div class="history-val">${row.proud}</div>` : ''}
+        ${row.letgo ? `<div class="history-field">Let go of</div><div class="history-val">${row.letgo}</div>` : ''}
+        ${row.income ? `<div class="history-field">Income: €${row.income} &nbsp; Closes: ${row.closes}</div>` : ''}
+      </div>`).join('');
+  } catch(e) {
+    el.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">Could not load history. Check your URL.</div>';
+  }
+}
+
+renderDate(); renderTasks(); renderReflections(); renderSales(); bindTextareas(); checkSetup();
+</script>
+</body>
+</html>
