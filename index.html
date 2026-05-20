@@ -140,8 +140,27 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       </div>
     </div>
 
-    <div class="section">
+  <div class="section">
       <div class="section-label">Sales</div>
+      <div class="block">
+        <div class="block-title">&#128200; Reflection</div>
+        <div class="field-wrap">
+          <div class="field-label">What went well</div>
+          <textarea id="sales-well" rows="3" placeholder="What worked in your sales today..."></textarea>
+        </div>
+        <div class="field-wrap">
+          <div class="field-label">What do I need to focus on</div>
+          <textarea id="sales-focus" rows="3" placeholder="What will you improve or double down on..."></textarea>
+        </div>
+        <div class="save-row">
+          <span class="status" id="sales-status"></span>
+          <div style="display:flex;gap:6px;">
+            <button class="save-btn" onclick="resetSection('sales')">reset</button>
+            <button class="save-btn" onclick="saveDraft('sales')">save draft</button>
+            <button class="save-cloud" onclick="saveToSheet('sales')">save to journal</button>
+          </div>
+        </div>
+      </div>
       <div class="metric-grid">
         <div class="metric-card">
           <div class="metric-label">Income this month</div>
