@@ -213,7 +213,7 @@ const DRAFT_KEY = 'richard_dash_draft';
 const SCRIPT_KEY = 'richard_script_url';
 
 function getDraft() { try { const r = localStorage.getItem(DRAFT_KEY); return r ? JSON.parse(r) : defaultDraft(); } catch(e) { return defaultDraft(); } }
-function defaultDraft() { return { tasks:[{text:'',done:false},{text:'',done:false},{text:'',done:false}], grateful:'', proud:'', letgo:'', income:0, closes:0 }; }
+function defaultDraft() { return { tasks:[{text:'',done:false},{text:'',done:false},{text:'',done:false}], grateful:'', proud:'', letgo:'', salesWell:'', salesFocus:'', income:0, closes:0 }; }
 function persistDraft(d) { try { localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch(e) {} }
 
 let draft = getDraft();
