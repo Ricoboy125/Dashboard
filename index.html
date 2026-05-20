@@ -281,8 +281,8 @@ async function saveDayToSheet() {
   persistDraft(draft);
 
   const taskStr = draft.tasks.filter(t=>t.text).map((t,i)=>`${i+1}. [${t.done?'x':' '}] ${t.text}`).join(' | ');
-  const today = new Date().toLocaleDateString('en-GB');
-
+  const d = new Date();
+  const today = 'DATE_' + d.getFullYear() + '_' + String(d.getMonth()+1).padStart(2,'0') + '_' + String(d.getDate()).padStart(2,'0');
   const params = new URLSearchParams({
     action: 'save',
     date: today,
