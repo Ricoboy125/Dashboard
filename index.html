@@ -19,7 +19,9 @@
       --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.15);
     }
   }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg2); color: var(--text); min-height: 100vh; padding: 2rem 1rem 4rem; }  .top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 2rem; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg2); color: var(--text); min-height: 100vh; padding: 2rem 1rem 4rem; }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  .top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 2rem; }
   .top-title { font-size: 22px; font-weight: 500; }
   .top-date { font-size: 13px; color: var(--text3); }
   .section-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 1rem; }
@@ -110,14 +112,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
           <div class="field-label">What I am grateful for</div>
           <textarea id="grateful" rows="3" placeholder="Write what you are grateful for today..."></textarea>
         </div>
-        <div class="save-row">
-          <span class="status" id="morning-status"></span>
-         <div style="display:flex;gap:6px;">
-            <button class="save-btn" onclick="resetSection('morning')">reset</button>
-            <button class="save-btn" onclick="saveDraft('morning')">save draft</button>
-            <button class="save-cloud" onclick="saveToSheet('morning')">save to journal</button>
-          </div>
-        </div>
       </div>
       <div class="block">
         <div class="block-title">&#9790; Evening</div>
@@ -129,18 +123,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
           <div class="field-label">What I need to let go of tomorrow</div>
           <textarea id="letgo" rows="3" placeholder="What are you releasing before tomorrow..."></textarea>
         </div>
-        <div class="save-row">
-          <span class="status" id="evening-status"></span>
-          <div style="display:flex;gap:6px;">
-            <button class="save-btn" onclick="resetSection('evening')">reset</button>
-            <button class="save-btn" onclick="saveDraft('evening')">save draft</button>
-            <button class="save-cloud" onclick="saveToSheet('evening')">save to journal</button>
-          </div>
-        </div>
       </div>
     </div>
 
-  <div class="section">
+    <div class="section">
       <div class="section-label">Sales</div>
       <div class="block">
         <div class="block-title">&#128200; Reflection</div>
@@ -151,14 +137,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <div class="field-wrap">
           <div class="field-label">What do I need to focus on</div>
           <textarea id="sales-focus" rows="3" placeholder="What will you improve or double down on..."></textarea>
-        </div>
-        <div class="save-row">
-          <span class="status" id="sales-status"></span>
-          <div style="display:flex;gap:6px;">
-            <button class="save-btn" onclick="resetSection('sales')">reset</button>
-            <button class="save-btn" onclick="saveDraft('sales')">save draft</button>
-            <button class="save-cloud" onclick="saveToSheet('sales')">save to journal</button>
-          </div>
         </div>
       </div>
       <div class="metric-grid">
@@ -180,6 +158,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
             <input type="number" id="closes-input" placeholder="count" min="0" />
             <button onclick="saveCloses()">update</button>
           </div>
+        </div>
+      </div>
+      <div class="save-row" style="margin-top:1rem;">
+        <span class="status" id="day-status"></span>
+        <div style="display:flex;gap:6px;">
+          <button class="save-btn" onclick="resetAll()">reset all</button>
+          <button class="save-cloud" onclick="saveDayToSheet()">save day</button>
         </div>
       </div>
     </div>
@@ -270,41 +255,30 @@ function addTask() { draft.tasks.push({text:'',done:false}); persistDraft(draft)
 function autoResize(el) { el.style.height='auto'; el.style.height=el.scrollHeight+'px'; }
 function bindTextareas() { document.querySelectorAll('textarea').forEach(ta=>{ ta.addEventListener('input',()=>autoResize(ta)); autoResize(ta); }); }
 
-function resetSection(section) {
-  if (!confirm('Clear all ' + section + ' fields?')) return;
-  if (section === 'morning') {
-    draft.tasks = [{text:'',done:false},{text:'',done:false},{text:'',done:false}];
-    draft.grateful = '';
-    document.getElementById('grateful').value = '';
-    renderTasks();
-  }
-  if (section === 'evening') {
-    draft.proud = '';
-    draft.letgo = '';
-    document.getElementById('proud').value = '';
-    document.getElementById('letgo').value = '';
-  }
-if (section === 'sales') {
-    draft.salesWell = '';
-    draft.salesFocus = '';
-    document.getElementById('sales-well').value = '';
-    document.getElementById('sales-focus').value = '';
-  }
+function resetAll() {
+  if (!confirm('Clear all fields for today?')) return;
+  draft.tasks = [{text:'',done:false},{text:'',done:false},{text:'',done:false}];
+  draft.grateful = '';
+  draft.proud = '';
+  draft.letgo = '';
+  draft.salesWell = '';
+  draft.salesFocus = '';
+  document.getElementById('grateful').value = '';
+  document.getElementById('proud').value = '';
+  document.getElementById('letgo').value = '';
+  document.getElementById('sales-well').value = '';
+  document.getElementById('sales-focus').value = '';
+  renderTasks();
   persistDraft(draft);
-}
-function saveDraft(section) {
-  if (section==='morning') draft.grateful=document.getElementById('grateful').value;
-  if (section==='evening') { draft.proud=document.getElementById('proud').value; draft.letgo=document.getElementById('letgo').value; }
-  if (section==='sales') { draft.salesWell=document.getElementById('sales-well').value; draft.salesFocus=document.getElementById('sales-focus').value; }
-  persistDraft(draft);
-  setStatus(section+'-status', 'Draft saved');
 }
 
-async function saveToSheet(section) {
+async function saveDayToSheet() {
   if (!scriptUrl) { document.getElementById('setup-banner').style.display='block'; return; }
-  if (section==='morning') draft.grateful=document.getElementById('grateful').value;
-  if (section==='evening') { draft.proud=document.getElementById('proud').value; draft.letgo=document.getElementById('letgo').value; }
-  if (section==='sales') { draft.salesWell=document.getElementById('sales-well').value; draft.salesFocus=document.getElementById('sales-focus').value; }
+  draft.grateful = document.getElementById('grateful').value;
+  draft.proud = document.getElementById('proud').value;
+  draft.letgo = document.getElementById('letgo').value;
+  draft.salesWell = document.getElementById('sales-well').value;
+  draft.salesFocus = document.getElementById('sales-focus').value;
   persistDraft(draft);
 
   const taskStr = draft.tasks.filter(t=>t.text).map((t,i)=>`${i+1}. [${t.done?'x':' '}] ${t.text}`).join(' | ');
@@ -313,7 +287,6 @@ async function saveToSheet(section) {
   const params = new URLSearchParams({
     action: 'save',
     date: today,
-    section: section,
     tasks: taskStr,
     grateful: draft.grateful,
     proud: draft.proud,
@@ -324,17 +297,17 @@ async function saveToSheet(section) {
     closes: draft.closes
   });
 
-  setStatus(section+'-status', 'Saving...');
+  setStatus('day-status', 'Saving...');
   try {
     const res = await fetch(scriptUrl + '?' + params.toString());
     const text = await res.text();
-    if (text.includes('ok') || text.includes('error') === false) {
-      setStatus(section+'-status', 'Saved to journal');
+    if (text.includes('ok')) {
+      setStatus('day-status', 'Day saved to journal');
     } else {
-      setStatus(section+'-status', 'Something went wrong');
+      setStatus('day-status', 'Something went wrong');
     }
   } catch(e) {
-    setStatus(section+'-status', 'Error: ' + e.message);
+    setStatus('day-status', 'Error: ' + e.message);
   }
 }
 
@@ -378,11 +351,13 @@ async function loadHistory() {
     if (!data.length) { el.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">No entries yet.</div>'; return; }
     el.innerHTML = data.reverse().map(row=>`
       <div class="history-entry">
-        <div class="history-date">${row.date} — ${row.section}</div>
+        <div class="history-date">${row.date}</div>
         ${row.tasks ? `<div class="history-field">Tasks</div><div class="history-val">${row.tasks}</div>` : ''}
         ${row.grateful ? `<div class="history-field">Grateful for</div><div class="history-val">${row.grateful}</div>` : ''}
         ${row.proud ? `<div class="history-field">Proud of</div><div class="history-val">${row.proud}</div>` : ''}
         ${row.letgo ? `<div class="history-field">Let go of</div><div class="history-val">${row.letgo}</div>` : ''}
+        ${row.salesWell ? `<div class="history-field">What went well</div><div class="history-val">${row.salesWell}</div>` : ''}
+        ${row.salesFocus ? `<div class="history-field">Focus on</div><div class="history-val">${row.salesFocus}</div>` : ''}
         ${row.income ? `<div class="history-field">Income: €${row.income} &nbsp; Closes: ${row.closes}</div>` : ''}
       </div>`).join('');
   } catch(e) {
