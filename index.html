@@ -251,7 +251,23 @@ function addTask() { draft.tasks.push({text:'',done:false}); persistDraft(draft)
 function autoResize(el) { el.style.height='auto'; el.style.height=el.scrollHeight+'px'; }
 function bindTextareas() { document.querySelectorAll('textarea').forEach(ta=>{ ta.addEventListener('input',()=>autoResize(ta)); autoResize(ta); }); }
 
-function saveDraft(section) {
+function resetSection(section) {
+  if (!confirm('Clear all ' + section + ' fields?')) return;
+  if (section === 'morning') {
+    draft.tasks = [{text:'',done:false},{text:'',done:false},{text:'',done:false}];
+    draft.grateful = '';
+    document.getElementById('grateful').value = '';
+    renderTasks();
+  }
+  if (section === 'evening') {
+    draft.proud = '';
+    draft.letgo = '';
+    document.getElementById('proud').value = '';
+    document.getElementById('letgo').value = '';
+  }
+  persistDraft(draft);
+}
+ function saveDraft(section) {
   if (section==='morning') draft.grateful=document.getElementById('grateful').value;
   if (section==='evening') { draft.proud=document.getElementById('proud').value; draft.letgo=document.getElementById('letgo').value; }
   persistDraft(draft);
