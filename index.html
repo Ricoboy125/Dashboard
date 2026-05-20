@@ -295,6 +295,7 @@ if (section === 'sales') {
 function saveDraft(section) {
   if (section==='morning') draft.grateful=document.getElementById('grateful').value;
   if (section==='evening') { draft.proud=document.getElementById('proud').value; draft.letgo=document.getElementById('letgo').value; }
+  if (section==='sales') { draft.salesWell=document.getElementById('sales-well').value; draft.salesFocus=document.getElementById('sales-focus').value; }
   persistDraft(draft);
   setStatus(section+'-status', 'Draft saved');
 }
