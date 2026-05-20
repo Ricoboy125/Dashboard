@@ -304,6 +304,7 @@ async function saveToSheet(section) {
   if (!scriptUrl) { document.getElementById('setup-banner').style.display='block'; return; }
   if (section==='morning') draft.grateful=document.getElementById('grateful').value;
   if (section==='evening') { draft.proud=document.getElementById('proud').value; draft.letgo=document.getElementById('letgo').value; }
+  if (section==='sales') { draft.salesWell=document.getElementById('sales-well').value; draft.salesFocus=document.getElementById('sales-focus').value; }
   persistDraft(draft);
 
   const taskStr = draft.tasks.filter(t=>t.text).map((t,i)=>`${i+1}. [${t.done?'x':' '}] ${t.text}`).join(' | ');
